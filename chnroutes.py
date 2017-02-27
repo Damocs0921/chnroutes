@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#encoding: utf8
 import re
 import urllib2
 import sys
@@ -209,6 +210,7 @@ def fetch_ip_data_17mon():
         starting_ip, mask2 = line.strip().split('/')
         results.append((starting_ip, mask_convert(int(mask2)), mask2))
 
+    results.append(('103.235.0.0', mask_convert(16), '16'))  # 百度
     return results
 
 
