@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-
 import re
 import urllib2
 import sys
 import argparse
 import math
 import textwrap
+import socket
+import struct
 
 
 def generate_ovpn(metric):
@@ -191,7 +192,34 @@ def generate_android(metric):
           "use the regular openvpn 2.1 method to add routes if it's possible"
 
 
+def mask_convert(n):
+    """16 -> 255.255.0.0"""
+    ip = int('1' * n + '0' * (32 - n), 2)
+    ip = socket.inet_ntoa(struct.pack("!I", ip))
+    return ip
+
+
+def fetch_ip_data_17mon():
+    print "Fetching data from github.com/17mon/china_ip_list, it might take a few minutes, please wait..."
+    url = r'https://github.com/17mon/china_ip_list/raw/master/china_ip_list.txt'
+
+    results = []
+
+    for line in urllib2.urlopen(url):
+        starting_ip, mask2 = line.strip().split('/')
+        results.append((starting_ip, mask_convert(int(mask2)), mask2))
+
+    return results
+
+
 def fetch_ip_data():
+    if args.source == '17mon':
+        return fetch_ip_data_17mon()
+    else:
+        return fetch_ip_data_apnic()
+
+
+def fetch_ip_data_apnic():
     #fetch data from apnic
     print "Fetching data from apnic.net, it might take a few minutes, please wait..."
     url=r'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest'
@@ -242,7 +270,13 @@ if __name__=='__main__':
                         nargs='?',
                         type=int,
                         help="Metric setting for the route rules")
-    
+
+    parser.add_argument('-s','--source',
+                        dest='source',
+                        default='apnic',
+                        nargs='?',
+                        help="Source to fetch data: apnic, or 17mon")
+
     args = parser.parse_args()
     
     if args.platform.lower() == 'openvpn':
